@@ -46,6 +46,79 @@
 
     <!-- Main CSS File -->
     <link href="assets/css/style.css" rel="stylesheet" />
+
+    <style>
+      .project-item {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        transition: transform 0.3s ease;
+      }
+      .project-item:hover {
+        transform: translateY(-5px);
+      }
+      .image-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        padding: 10px 0;
+      }
+      .project-image {
+        width: 100%;
+        max-height: 150px;
+        height: auto;
+        object-fit: contain;
+        border-radius: 8px;
+      }
+      .project-icon {
+        display: block;
+        margin: 0 auto;
+      }
+      .project-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .store-links {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+      }
+      .store-links span {
+        font-weight: 500;
+        color: #333;
+      }
+      .store-links .icons {
+        display: flex;
+        gap: 10px;
+      }
+      .store-links a {
+        transition: opacity 0.3s ease;
+      }
+      .store-links a:hover {
+        opacity: 0.7;
+      }
+      /* Project-specific colors */
+      .project-zlearn .project-icon, .project-zlearn h4 {
+        color: #446D6F;
+      }
+      .project-yamo .project-icon, .project-yamo h4 {
+        color: #FF601C;
+      }
+      .project-contritok .project-icon, .project-contritok h4 {
+        color: #C62827;
+      }
+      .project-bolo .project-icon, .project-bolo h4 {
+        color: #2775E2;
+      }
+      .project-cybershield .project-icon, .project-cybershield h4 {
+        color: #263BAE;
+      }
+    </style>
   </head>
 
   <body>
@@ -159,69 +232,148 @@
       </p>
     </div>
 
+
+
     <div class="row">
-      <!-- Project 1 -->
+      <!-- Project 1: Z-Learn -->
       <div class="col-lg-4 col-md-6 d-flex align-items-stretch mb-4" data-aos="zoom-in" data-aos-delay="100">
-        <div class="project-item shadow p-4 bg-white rounded">
-          <div class="icon mb-3">
-            <iconify-icon class="project-icon" icon="mdi:book-education" width="48"></iconify-icon>
+        <div class="project-item shadow p-4 bg-white rounded project-zlearn">
+          <div class="image-container">
+            <img src="assets/img/z-learn.jpeg" class="project-image" alt="Z-Learn Project" />
           </div>
-          <h4>Z-Learn</h4>
-          <p>
-            Z-Learn is a mobile app that provides students going in for exams with exam resources to use in preparation. It offers several features such as past questions, mark guides, Z-Bot, chat forums, announcements, and more.
-          </p>
+          <div class="project-content">
+            <div class="icon mb-3">
+              <iconify-icon class="project-icon" icon="mdi:book-education" width="48"></iconify-icon>
+            </div>
+            <h4>Z-Learn</h4>
+            <p>
+              Z-Learn is a mobile app that provides students going in for exams with exam resources to use in preparation. It offers several features such as past questions, mark guides, Z-Bot, chat forums, announcements, and more.
+            </p>
+            <div class="store-links mt-auto">
+              <span>Download</span>
+              <div class="icons">
+                <a href="https://www.apple.com/app-store/" target="_blank">
+                  <iconify-icon icon="mdi:apple-appstore" width="32"></iconify-icon>
+                </a>
+                <a href="https://play.google.com/store" target="_blank">
+                  <iconify-icon icon="mdi:google-play" width="32"></iconify-icon>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Project 2 -->
+      <!-- Project 2: Yamo -->
       <div class="col-lg-4 col-md-6 d-flex align-items-stretch mb-4" data-aos="zoom-in" data-aos-delay="200">
-        <div class="project-item shadow p-4 bg-white rounded">
-          <div class="icon mb-3">
-            <iconify-icon class="project-icon" icon="mdi:finance" width="48"></iconify-icon>
+        <div class="project-item shadow p-4 bg-white rounded project-yamo">
+          <div class="image-container">
+            <img src="assets/img/yamo.png" class="project-image" alt="Yamo Project" />
           </div>
-          <h4>Yamo</h4>
-          <p>
-            Yamo is a food booking app that allows people to order food from the comfort of their homes, providing an excellent experience for users.
-          </p>
+          <div class="project-content">
+            <div class="icon mb-3">
+              <iconify-icon class="project-icon" icon="mdi:food" width="48"></iconify-icon>
+            </div>
+            <h4>Yamo</h4>
+            <p>
+              Yamo is a food booking app that allows people to order food from the comfort of their homes, providing an excellent experience for users.
+            </p>
+            <div class="store-links mt-auto">
+              <span>Download</span>
+              <div class="icons">
+                <a href="https://www.apple.com/app-store/" target="_blank">
+                  <iconify-icon icon="mdi:apple-appstore" width="32"></iconify-icon>
+                </a>
+                <a href="https://play.google.com/store" target="_blank">
+                  <iconify-icon icon="mdi:google-play" width="32"></iconify-icon>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Project 3 -->
+      <!-- Project 3: ContriTok -->
       <div class="col-lg-4 col-md-6 d-flex align-items-stretch mb-4" data-aos="zoom-in" data-aos-delay="300">
-        <div class="project-item shadow p-4 bg-white rounded">
-          <div class="icon mb-3">
-            <iconify-icon class="project-icon" icon="mdi:social-media" width="48"></iconify-icon>
+        <div class="project-item shadow p-4 bg-white rounded project-contritok">
+          <div class="image-container">
+            <img src="assets/img/contritok.jpeg" class="project-image" alt="ContriTok Project" />
           </div>
-          <h4>ContriTok</h4>
-          <p>
-            ContriTok is an app that allows Cameroonians to learn their mother tongues and culture, all in one place.
-          </p>
+          <div class="project-content">
+            <div class="icon mb-3">
+              <iconify-icon class="project-icon" icon="mdi:social-media" width="48"></iconify-icon>
+            </div>
+            <h4>ContriTok</h4>
+            <p>
+              ContriTok is an app that allows Cameroonians to learn their mother tongues and culture, all in one place.
+            </p>
+            <div class="store-links mt-auto">
+              <span>Download</span>
+              <div class="icons">
+                <a href="https://www.apple.com/app-store/" target="_blank">
+                  <iconify-icon icon="mdi:apple-appstore" width="32"></iconify-icon>
+                </a>
+                <a href="https://play.google.com/store" target="_blank">
+                  <iconify-icon icon="mdi:google-play" width="32"></iconify-icon>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Project 4 -->
+      <!-- Project 4: BOLO -->
       <div class="col-lg-4 col-md-6 d-flex align-items-stretch mb-4" data-aos="zoom-in" data-aos-delay="400">
-        <div class="project-item shadow p-4 bg-white rounded">
-          <div class="icon mb-3">
-            <iconify-icon class="project-icon" icon="mdi:security" width="48"></iconify-icon>
+        <div class="project-item shadow p-4 bg-white rounded project-bolo">
+          <div class="image-container">
+            <img src="assets/img/bolo.jpeg" class="project-image" alt="BOLO Project" />
           </div>
-          <h4>BOLO</h4>
-          <p>
-            BOLO is a local job search platform for Cameroonians to find local and unprofessional jobs easily.
-          </p>
+          <div class="project-content">
+            <div class="icon mb-3">
+              <iconify-icon class="project-icon" icon="mdi:security" width="48"></iconify-icon>
+            </div>
+            <h4>BOLO</h4>
+            <p>
+              BOLO is a local job search platform for Cameroonians to find local and unprofessional jobs easily.
+            </p>
+            <div class="store-links mt-auto">
+              <span>Visit</span>
+              <div class="icons">
+                <a href="https://bolo.example.com" target="_blank">
+                  <iconify-icon icon="mdi:web" width="32"></iconify-icon>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Project 5 -->
+      <!-- Project 5: CyberShield -->
       <div class="col-lg-4 col-md-6 d-flex align-items-stretch mb-4" data-aos="zoom-in" data-aos-delay="500">
-        <div class="project-item shadow p-4 bg-white rounded">
-          <div class="icon mb-3">
-            <iconify-icon class="project-icon" icon="mdi:shield-lock" width="48"></iconify-icon>
+        <div class="project-item shadow p-4 bg-white rounded project-cybershield">
+          <div class="image-container">
+            <img src="assets/img/cybershield.jpeg" class="project-image" alt="CyberShield Project" />
           </div>
-          <h4>CyberShield</h4>
-          <p>
-            CyberShield is a mobile app that sensitizes Cameroonians on how to stay safe on the internet.
-          </p>
+          <div class="project-content">
+            <div class="icon mb-3">
+              <iconify-icon class="project-icon" icon="mdi:shield-lock" width="48"></iconify-icon>
+            </div>
+            <h4>CyberShield</h4>
+            <p>
+              CyberShield is a mobile app that sensitizes Cameroonians on how to stay safe on the internet.
+            </p>
+            <div class="store-links mt-auto">
+              <span>Download</span>
+              <div class="icons">
+                <a href="https://www.apple.com/app-store/" target="_blank">
+                  <iconify-icon icon="mdi:apple-appstore" width="32"></iconify-icon>
+                </a>
+                <a href="https://play.google.com/store" target="_blank">
+                  <iconify-icon icon="mdi:google-play" width="32"></iconify-icon>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
