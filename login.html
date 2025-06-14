@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Login</h2>
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="email" name="email" required
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="password" name="password" required
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <button type="submit"
+                    class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Login
+            </button>
+        </form>
+    </div>
+
+    <script src="assets/js/toast_manager.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            console.log('Attempting login with:', { email });
+
+            try {
+                const data = { email, password };
+                const response = await apiClient.post('/login/', data);
+                console.log('Login response:', response);
+                apiClient.setTokens(response);
+                try {
+                    toastManager.showToast('Login successful!', 'success', 'top-right');
+                } catch (toastError) {
+                    console.error('Toast error:', toastError.message);
+                }
+                const redirectUrl = response.is_admin ? 'dashboard/admin.html' : 'dashboard/Team_member.html';
+                console.log('Redirecting to:', redirectUrl);
+                window.location.href = redirectUrl;
+            } catch (error) {
+                console.error('Login error:', error.message);
+                const errorMessage = error.message.includes('401') ? 'Invalid email or password' : 'An error occurred. Please try again.';
+                try {
+                    toastManager.showToast(errorMessage, 'error', 'top-right');
+                } catch (toastError) {
+                    console.error('Toast error:', toastError.message);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

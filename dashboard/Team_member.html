@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Member Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-teal-600 text-white p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold">Team Member Dashboard</h1>
+        <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-md">Logout</button>
+    </nav>
+    <div class="container mx-auto p-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-4">Profile Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <p id="email" class="mt-1 text-gray-900">[Email Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                    <p id="name" class="mt-1 text-gray-900">[Name Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Admin Status</label>
+                    <p id="is_admin" class="mt-1 text-gray-900">[Admin Status Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Role</label>
+                    <p id="role" class="mt-1 text-gray-900">[Role Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Date Joined</label>
+                    <p id="date_joined" class="mt-1 text-gray-900">[Date Joined Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Last Login</label>
+                    <p id="last_login" class="mt-1 text-gray-900">[Last Login Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Bio</label>
+                    <p id="bio" class="mt-1 text-gray-900">[Bio Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Location</label>
+                    <p id="location" class="mt-1 text-gray-900">[Location Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">GitHub URL</label>
+                    <p id="github_url" class="mt-1 text-gray-900">[GitHub URL Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">LinkedIn URL</label>
+                    <p id="linkedin_url" class="mt-1 text-gray-900">[LinkedIn URL Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Twitter URL</label>
+                    <p id="twitter_url" class="mt-1 text-gray-900">[Twitter URL Placeholder]</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Language Preference</label>
+                    <p id="language_preference" class="mt-1 text-gray-900">[Language Preference Placeholder]</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/toast_manager.js"></script>
+    <script src="../assets/js/api.js"></script>
+    <script>
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            apiClient.clearTokens();
+            toastManager.showToast('Logged out successfully', 'success', 'top-right');
+            setTimeout(() => {
+                window.location.href = '../index.html';
+            }, 1000);
+        });
+
+        // Placeholder for fetching AdminDashboard data later
+        async function loadProfile() {
+            try {
+                // Example: const data = await apiClient.get('/profile/');
+                // Update DOM with data.email, data.name, etc.
+                toastManager.showToast('Profile data will be loaded here', 'info', 'top-right');
+            } catch (error) {
+                toastManager.showToast('Error loading profile', 'error', 'top-right');
+            }
+        }
+        // loadProfile(); // Uncomment when endpoint is ready
+    </script>
+</body>
+</html>
