@@ -2,15 +2,25 @@ const BASE_URL = 'http://localhost:8000/api';
 
 class ApiClient {
     constructor() {
-        this.authTokens = null;
+        this.loadTokens();
+    }
+
+    loadTokens() {
+        const tokens = localStorage.getItem('authTokens');
+        this.authTokens = tokens ? JSON.parse(tokens) : null;
+        console.log('Loaded tokens:', this.authTokens);
     }
 
     setTokens(tokens) {
+        console.log('Setting tokens:', tokens);
         this.authTokens = tokens;
+        localStorage.setItem('authTokens', JSON.stringify(tokens));
     }
 
     clearTokens() {
+        console.log('Clearing tokens');
         this.authTokens = null;
+        localStorage.removeItem('authTokens');
     }
 
     getHeaders() {
@@ -19,8 +29,32 @@ class ApiClient {
         };
         if (this.authTokens && this.authTokens.access) {
             headers['Authorization'] = `Bearer ${this.authTokens.access}`;
+            console.log('Authorization header set:', headers['Authorization']);
+        } else {
+            console.log('No access token available');
         }
         return headers;
+    }
+
+        // Add to api.js
+    async upload(endpoint, formData) {
+        try {
+            const options = {
+                method: 'PUT',
+                headers: this.getHeaders(),
+                body: formData
+            };
+            delete options.headers['Content-Type']; // Let browser set multipart boundary
+            console.log(`[PUT] Upload to: ${BASE_URL}${endpoint}`);
+            const response = await fetch(`${BASE_URL}${endpoint}`, options);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+            }
+            return response.status === 204 ? {} : await response.json();
+        } catch (error) {
+            throw error;
+        }
     }
 
     async request(method, endpoint, body = null) {
@@ -32,6 +66,7 @@ class ApiClient {
             if (body && ['POST', 'PUT', 'PATCH'].includes(method)) {
                 options.body = JSON.stringify(body);
             }
+            console.log(`[${method}] Request to: ${BASE_URL}${endpoint}`);
             const response = await fetch(`${BASE_URL}${endpoint}`, options);
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -65,4 +100,4 @@ class ApiClient {
 }
 
 const apiClient = new ApiClient();
-window.apiClient = apiClient; // Make globally accessible
+window.apiClient = apiClient;

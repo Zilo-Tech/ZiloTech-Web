@@ -31,36 +31,61 @@
     <script src="assets/js/toast_manager.js"></script>
     <script src="assets/js/api.js"></script>
     <script>
+        // Flag to prevent multiple submissions
+        let isSubmitting = false;
+    
         document.getElementById('loginForm').addEventListener('submit', async (event) => {
-            event.preventDefault();
+            event.preventDefault(); // Prevent default form submission
+    
+            // Prevent multiple submissions
+            if (isSubmitting) {
+                console.log('Submission already in progress, ignoring...');
+                return;
+            }
+    
+            isSubmitting = true;
+            const submitButton = document.querySelector('button[type="submit"]');
+            submitButton.disabled = true; // Disable button to prevent multiple clicks
+    
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-
+    
             console.log('Attempting login with:', { email });
-
+    
             try {
                 const data = { email, password };
                 const response = await apiClient.post('/login/', data);
-                console.log('Login response:', response);
+                console.log('Full login response:', response);
+    
+                // Store tokens
                 apiClient.setTokens(response);
+    
+                // Show success toast
                 try {
                     toastManager.showToast('Login successful!', 'success', 'top-right');
                 } catch (toastError) {
                     console.error('Toast error:', toastError.message);
                 }
-                const redirectUrl = response.is_admin ? 'dashboard/admin.html' : 'dashboard/Team_member.html';
+    
+                // Redirect based on user role
+                const redirectUrl = response.user?.is_admin ? 'dashboard/admin.html' : 'dashboard/Team_member.html';
                 console.log('Redirecting to:', redirectUrl);
-                window.location.href = redirectUrl;
+                setTimeout(() => {
+                    window.location.href = redirectUrl;
+                }, 1000); // 1-second delay for toast visibility
             } catch (error) {
-                console.error('Login error:', error.message);
-                const errorMessage = error.message.includes('401') ? 'Invalid email or password' : 'An error occurred. Please try again.';
+                console.error('Login error:', error.message, error);
+                const errorMessage = error.message.includes('401') ? 'Invalid email or password' : error.message || 'An error occurred. Please try again.';
                 try {
                     toastManager.showToast(errorMessage, 'error', 'top-right');
                 } catch (toastError) {
                     console.error('Toast error:', toastError.message);
                 }
+            } finally {
+                isSubmitting = false;
+                submitButton.disabled = false; // Re-enable button after request completes
             }
-        });
+        }, { once: false }); // Ensure listener is not accidentally removed
     </script>
 </body>
 </html>
