@@ -674,10 +674,10 @@ class AdminManager {
     async setupUpdateProfileForm() {
         try {
             const [userData, roles] = await Promise.all([
-                apiClient.get('/admin/dashboard/'),
+                apiClient.get('/user/dashboard/'), // Use user endpoint for consistency
                 apiClient.get('/roles/')
             ]);
-
+    
             const fields = ['name', 'bio', 'github_url', 'linkedin_url', 'twitter_url', 'location', 'language_preference', 'role_id'];
             fields.forEach(field => {
                 const input = document.getElementById(field);
@@ -708,11 +708,19 @@ class AdminManager {
                         input.value = userData.user.language_preference || '';
                         break;
                     case 'role_id':
-                        input.innerHTML = `<option value="">Select...</option>` + roles.map(role => `<option value="${role.api_id}" ${userData.user.role_id === role.api_id ? 'selected' : ''}>${role.name}</option>`).join('');
+                        input.innerHTML = `<option value="">Select...</option>` + roles.map(role => `<option value="${role.api_id}" ${userData.user.role?.api_id === role.api_id ? 'selected' : ''}>${role.name}</option>`).join('');
                         break;
                 }
             });
-
+    
+            // Add skills input
+            const skillsInput = document.createElement('div');
+            skillsInput.innerHTML = `
+                <label for="skills" class="block text-sm font-medium text-gray-700">Skills (comma-separated)</label>
+                <input type="text" id="skills" name="skills" value="${userData.user.skills ? userData.user.skills.join(', ') : ''}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            `;
+            document.getElementById('update-profile-form').insertBefore(skillsInput, document.getElementById('role_id').parentElement);
+    
             // Add image preview
             const imageInput = document.getElementById('profile_picture');
             const imagePreview = document.getElementById('image-preview');
@@ -724,33 +732,51 @@ class AdminManager {
                     imagePreview.classList.add('hidden');
                 }
             });
-
+    
             document.getElementById('update-profile-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
+                // Transform URLs
                 formData.set('github_url', formData.get('github_url') ? `https://github.com/${formData.get('github_url')}` : '');
                 formData.set('linkedin_url', formData.get('linkedin_url') ? `https://linkedin.com/in/${formData.get('linkedin_url')}` : '');
                 formData.set('twitter_url', formData.get('twitter_url') ? `https://twitter.com/${formData.get('twitter_url')}` : '');
-
+                // Handle skills as a list
+                const skills = formData.get('skills') ? formData.get('skills').split(',').map(s => s.trim()).filter(s => s) : [];
+                formData.delete('skills');
+                formData.append('skills', JSON.stringify(skills));
+    
+                // Log FormData for debugging
+                console.log('FormData entries:');
+                for (let [key, value] of formData.entries()) {
+                    console.log(`${key}: ${value}`);
+                }
+    
                 try {
-                    await apiClient.post('/admin/update-profile/', formData);
+                    const response = await apiClient.upload('/user/dashboard/', formData);
+                    console.log('Update response:', response);
                     if (typeof toastManager !== 'undefined') {
                         toastManager.showToast('Profile updated successfully', 'success', 'top-right');
                     }
-                    this.userData = await apiClient.get('/admin/dashboard/');
+                    // Refresh user data
+                    this.userData = await apiClient.get('/user/dashboard/');
+                    console.log('Refreshed user data:', this.userData);
                     this.updateSidebar();
+                    // Reload dashboard to reflect changes
+                    if (this.currentPage === 'dashboard') {
+                        await this.loadDashboard();
+                    }
                 } catch (error) {
+                    console.error('Update profile error:', error.message);
                     if (typeof toastManager !== 'undefined') {
                         toastManager.showToast(`Failed to update profile: ${error.message}`, 'error', 'top-right');
                     }
-                    console.error('Update profile error:', error.message);
                 }
             });
         } catch (error) {
+            console.error('Update profile error:', error.message);
             if (typeof toastManager !== 'undefined') {
                 toastManager.showToast(`Failed to load profile data: ${error.message}`, 'error', 'top-right');
             }
-            console.error('Update profile error:', error.message);
         }
     }
 
