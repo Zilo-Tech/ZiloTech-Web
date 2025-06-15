@@ -1,7 +1,7 @@
 class AdminBlogProjectManager {
     constructor() {
         this.currentPage = null;
-        this.baseUrl = 'http://localhost:8000/api'; // Updated base URL for API and media
+        this.baseUrl = 'https://ziloteck-backend.onrender.com/api'; // Updated base URL for API and media
     }
 
     // Initialize by setting up event listeners for blog/project pages

@@ -2,7 +2,7 @@ class AdminManager {
     constructor() {
         this.currentPage = 'dashboard';
         this.userData = null;
-        this.baseUrl = 'http://localhost:8000'; // Backend base URL for media files
+        this.baseUrl = 'https://ziloteck-backend.onrender.com'; // Backend base URL for media files
         this.init();
     }
 

@@ -2,7 +2,7 @@ class TeamMemberManager {
     constructor() {
         this.currentPage = 'dashboard';
         this.userData = null;
-        this.baseUrl = 'http://localhost:8000/api'; // Backend base URL for API
+        this.baseUrl = 'https://ziloteck-backend.onrender.com/api'; // Backend base URL for API
         this.isSidebarOpen = false;
         this.init();
     }
@@ -77,7 +77,7 @@ class TeamMemberManager {
 
     fixImageUrl(imagePath) {
         if (imagePath && !imagePath.startsWith('http')) {
-            return `http://localhost:8000/${imagePath.startsWith('media/') ? '' : 'media/'}${imagePath}`;
+            return `https://ziloteck-backend.onrender.com/${imagePath.startsWith('media/') ? '' : 'media/'}${imagePath}`;
         }
         return imagePath || 'https://via.placeholder.com/40';
     }
