@@ -1,7 +1,8 @@
 class AdminManager {
     constructor() {
         this.currentPage = 'dashboard';
-        this.userData = null; // Store user data for sidebar
+        this.userData = null;
+        this.baseUrl = 'http://localhost:8000'; // Backend base URL for media files
         this.init();
     }
 
@@ -11,6 +12,9 @@ class AdminManager {
             this.updateSidebar();
         } catch (error) {
             console.error('Failed to load user data:', error.message);
+            if (typeof toastManager !== 'undefined') {
+                toastManager.showToast(`Failed to load user data: ${error.message}`, 'error', 'top-right');
+            }
         }
         this.setupEventListeners();
         this.loadPage(this.currentPage);
@@ -36,32 +40,48 @@ class AdminManager {
         });
     }
 
-    // admin.js
-updateSidebar() {
-    document.querySelectorAll('[data-nav]').forEach(link => {
-        const page = link.getAttribute('data-nav');
-        link.classList.toggle('bg-indigo-700', page === this.currentPage);
-        link.classList.toggle('text-white', page === this.currentPage);
-        link.classList.toggle('text-gray-300', page !== this.currentPage);
-        link.classList.toggle('hover:bg-indigo-600', page !== this.currentPage);
-    });
-
-    const userNameElement = document.getElementById('user-name');
-    const profilePicElement = document.getElementById('profile-pic');
-    if (this.userData && userNameElement && profilePicElement) {
-        userNameElement.textContent = this.userData.user.name || 'User';
-        // Prepend backend base URL to relative profile_picture path
-        let profilePicUrl = this.userData.user.profile_picture || 'https://via.placeholder.com/40';
-        if (profilePicUrl && !profilePicUrl.startsWith('http')) {
-            profilePicUrl = `http://localhost:8000/${profilePicUrl}`;
+    // Fix relative image URLs
+    fixImageUrl(imagePath) {
+        if (imagePath && !imagePath.startsWith('http')) {
+            return `${this.baseUrl}/${imagePath}`;
         }
-        profilePicElement.src = profilePicUrl;
+        return imagePath || 'https://via.placeholder.com/40';
     }
-}
+
+    updateSidebar() {
+        document.querySelectorAll('[data-nav]').forEach(link => {
+            const page = link.getAttribute('data-nav');
+            link.classList.toggle('bg-indigo-700', page === this.currentPage);
+            link.classList.toggle('text-white', page === this.currentPage);
+            link.classList.toggle('text-gray-300', page !== this.currentPage);
+            link.classList.toggle('hover:bg-indigo-600', page !== this.currentPage);
+        });
+
+        const userNameElement = document.getElementById('user-name');
+        const profilePicElement = document.getElementById('profile-pic');
+        if (this.userData && userNameElement && profilePicElement) {
+            userNameElement.textContent = this.userData.user.name || 'User';
+            profilePicElement.src = this.fixImageUrl(this.userData.user.profile_picture);
+        }
+    }
 
     async loadPage(page) {
         this.currentPage = page;
         this.updateSidebar();
+        if (['blog', 'projects'].includes(page)) {
+            // Delegate to adminBlogProjectManager
+            try {
+                await adminBlogProjectManager.loadPage(page);
+            } catch (error) {
+                const content = document.getElementById('main-content');
+                content.innerHTML = `<p class="p-6 text-red-500">Failed to load ${page}: ${error.message}</p>`;
+                if (typeof toastManager !== 'undefined') {
+                    toastManager.showToast(`Failed to load ${page}: ${error.message}`, 'error', 'top-right');
+                }
+            }
+            return;
+        }
+
         const content = document.getElementById('main-content');
         content.innerHTML = this.getPageContent(page);
 
@@ -77,12 +97,6 @@ updateSidebar() {
                 break;
             case 'update-profile':
                 await this.setupUpdateProfileForm();
-                break;
-            case 'blog':
-            case 'projects':
-                if (typeof toastManager !== 'undefined') {
-                    toastManager.showToast(`${page.charAt(0).toUpperCase() + page.slice(1)} page coming soon`, 'info', 'top-right');
-                }
                 break;
         }
     }
@@ -189,6 +203,7 @@ updateSidebar() {
                                 <div>
                                     <label for="profile_picture" class="block text-sm font-medium text-gray-700">Profile Picture</label>
                                     <input type="file" id="profile_picture" name="profile_picture" accept="image/*" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <img id="image-preview" class="mt-2 hidden max-w-xs h-auto" src="" alt="Image Preview">
                                 </div>
                                 <div>
                                     <label for="bio" class="block text-sm font-medium text-gray-700">Bio</label>
@@ -224,10 +239,6 @@ updateSidebar() {
                         </div>
                     </div>
                 `;
-            case 'blog':
-                return `<div class="p-6"><h2 class="text-2xl font-semibold mb-4">Blog</h2><p class="text-gray-500">Blog functionality coming soon.</p></div>`;
-            case 'projects':
-                return `<div class="p-6"><h2 class="text-2xl font-semibold mb-4">Projects</h2><p class="text-gray-500">Projects functionality coming soon.</p></div>`;
         }
     }
 
@@ -235,17 +246,28 @@ updateSidebar() {
         try {
             const data = await apiClient.get('/admin/dashboard/');
             this.userData = data;
-
-            const loader = document.getElementById('page-loader');
+    
             const content = document.getElementById('dashboard-content');
+            const loader = document.getElementById('page-loader');
             const profileInfo = document.getElementById('profile-info');
-            const profileHeader = content.querySelector('h3');
-            if (loader && profileInfo && profileHeader) {
-                loader.classList.add('hidden');
-                profileInfo.classList.remove('hidden');
-                profileHeader.classList.remove('hidden');
+            const profileHeader = content?.querySelector('h3');
+    
+            // Ensure all required elements exist
+            if (!content || !loader || !profileInfo || !profileHeader) {
+                console.warn('Dashboard DOM elements missing:', {
+                    content: !!content,
+                    loader: !!loader,
+                    profileInfo: !!profileInfo,
+                    profileHeader: !!profileHeader
+                });
+                throw new Error('Required dashboard elements not found in DOM');
             }
-
+    
+            // Hide loader and show profile content
+            loader.classList.add('hidden');
+            profileInfo.classList.remove('hidden');
+            profileHeader.classList.remove('hidden');
+    
             const fields = ['email', 'name', 'is_admin', 'role', 'date_joined', 'last_login', 'bio', 'location', 'github_url', 'linkedin_url', 'twitter_url', 'language_preference'];
             for (const field of fields) {
                 const element = document.getElementById(field);
@@ -292,16 +314,15 @@ updateSidebar() {
                         break;
                 }
             }
-            this.updateSidebar();
         } catch (error) {
             const loader = document.getElementById('page-loader');
             if (loader) {
-                loader.innerHTML = `<p class="text-red-500">Failed to load data: ${error.message}</p>`;
+                loader.innerHTML = `<p class="text-red-500">Failed to load dashboard: ${error.message}</p>`;
             }
             if (typeof toastManager !== 'undefined') {
-                toastManager.showToast('Failed to load profile: ' + error.message, 'error', 'top-right');
+                toastManager.showToast(`Failed to load dashboard: ${error.message}`, 'error', 'top-right');
             }
-            console.error('Dashboard error:', error.message, error);
+            console.error('Dashboard error:', error.message);
         }
     }
 
@@ -314,10 +335,10 @@ updateSidebar() {
             roles.forEach(role => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${role.api_id || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${role.api_id}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${role.name}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${role.created_at ? new Date(role.created_at).toLocaleString() : 'N/A'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${role.updated_at ? new Date(role.updated_at).toLocaleString() : 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(role.created_at).toLocaleString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(role.updated_at).toLocaleString()}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
                         <button data-edit="${role.api_id}" class="text-indigo-600 hover:text-indigo-900 mr-2">Edit</button>
                         <button data-delete="${role.api_id}" class="text-red-600 hover:text-red-900">Delete</button>
@@ -342,9 +363,9 @@ updateSidebar() {
                 loader.innerHTML = `<p class="text-red-500">Failed to load roles: ${error.message}</p>`;
             }
             if (typeof toastManager !== 'undefined') {
-                toastManager.showToast('Failed to load roles: ' + error.message, 'error', 'top-right');
+                toastManager.showToast(`Failed to load roles: ${error.message}`, 'error', 'top-right');
             }
-            console.error('Roles error:', error.message, error);
+            console.error('Roles error:', error.message);
         }
     }
 
@@ -358,11 +379,14 @@ updateSidebar() {
                 <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Create</button>
             </form>
         `);
+
         document.getElementById('create-role-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('name').value;
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+
             try {
-                await apiClient.post('/roles/', { name });
+                await apiClient.post('/roles/', data);
                 if (typeof toastManager !== 'undefined') {
                     toastManager.showToast('Role created successfully', 'success', 'top-right');
                 }
@@ -370,7 +394,7 @@ updateSidebar() {
                 this.loadRoles();
             } catch (error) {
                 if (typeof toastManager !== 'undefined') {
-                    toastManager.showToast('Failed to create role: ' + error.message, 'error', 'top-right');
+                    toastManager.showToast(`Failed to create role: ${error.message}`, 'error', 'top-right');
                 }
                 console.error('Create role error:', error.message);
             }
@@ -389,11 +413,14 @@ updateSidebar() {
                     <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Update</button>
                 </form>
             `);
+
             document.getElementById('edit-role-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const name = document.getElementById('name').value;
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData);
+
                 try {
-                    await apiClient.patch(`/roles/${id}/`, { name });
+                    await apiClient.put(`/roles/${id}/`, data);
                     if (typeof toastManager !== 'undefined') {
                         toastManager.showToast('Role updated successfully', 'success', 'top-right');
                     }
@@ -401,14 +428,14 @@ updateSidebar() {
                     this.loadRoles();
                 } catch (error) {
                     if (typeof toastManager !== 'undefined') {
-                        toastManager.showToast('Failed to update role: ' + error.message, 'error', 'top-right');
+                        toastManager.showToast(`Failed to update role: ${error.message}`, 'error', 'top-right');
                     }
                     console.error('Edit role error:', error.message);
                 }
             });
         } catch (error) {
             if (typeof toastManager !== 'undefined') {
-                toastManager.showToast('Failed to load role: ' + error.message, 'error', 'top-right');
+                toastManager.showToast(`Failed to load role: ${error.message}`, 'error', 'top-right');
             }
             console.error('Edit role error:', error.message);
         }
@@ -419,12 +446,12 @@ updateSidebar() {
             try {
                 await apiClient.delete(`/roles/${id}/`);
                 if (typeof toastManager !== 'undefined') {
-                    toastManager.showToast('Role deleted successfully!', 'success', 'top-right');
+                    toastManager.showToast('Role deleted successfully', 'success', 'top-right');
                 }
                 this.loadRoles();
             } catch (error) {
                 if (typeof toastManager !== 'undefined') {
-                    toastManager.showToast('Failed to delete role: ' + error.message, 'error', 'top-right');
+                    toastManager.showToast(`Failed to delete role: ${error.message}`, 'error', 'top-right');
                 }
                 console.error('Delete role error:', error.message);
             }
@@ -433,21 +460,23 @@ updateSidebar() {
 
     async loadTeamMembers() {
         try {
-            const members = await apiClient.get('/team-members/');
+            const teamMembers = await apiClient.get('/team-members/');
             const tbody = document.getElementById('team-members-table');
-            tbody.innerHTML = members.length ? '' : `<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No team members found</td></tr>`;
+            tbody.innerHTML = teamMembers.length ? '' : `<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No team members found</td></tr>`;
 
-            members.forEach(member => {
+            teamMembers.forEach(member => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.api_id || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.api_id}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.email}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.name}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.role?.name || 'N/A'}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.is_admin ? 'Yes' : 'No'}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${member.is_active ? 'Yes' : 'No'}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <button data-view="${member.api_id}" class="text-indigo-600 hover:text-indigo-900">View</button>
+                        <button data-view="${member.api_id}" class="text-indigo-600 hover:text-indigo-900 mr-2">View</button>
+                        <button data-edit="${member.api_id}" class="text-indigo-600 hover:text-indigo-900 mr-2">Edit</button>
+                        <button data-delete="${member.api_id}" class="text-red-600 hover:text-red-900">Delete</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -460,45 +489,140 @@ updateSidebar() {
             tbody.querySelectorAll('[data-view]').forEach(btn => {
                 btn.addEventListener('click', () => this.showTeamMemberDetails(btn.getAttribute('data-view')));
             });
+            tbody.querySelectorAll('[data-edit]').forEach(btn => {
+                btn.addEventListener('click', () => this.showEditTeamMemberForm(btn.getAttribute('data-edit')));
+            });
+            tbody.querySelectorAll('[data-delete]').forEach(btn => {
+                btn.addEventListener('click', () => this.deleteTeamMember(btn.getAttribute('data-delete')));
+            });
         } catch (error) {
             const loader = document.getElementById('page-loader');
             if (loader) {
                 loader.innerHTML = `<p class="text-red-500">Failed to load team members: ${error.message}</p>`;
             }
             if (typeof toastManager !== 'undefined') {
-                toastManager.showToast('Failed to load team members: ' + error.message, 'error', 'top-right');
+                toastManager.showToast(`Failed to load team members: ${error.message}`, 'error', 'top-right');
             }
-            console.error('Team members error:', error.message, error);
+            console.error('Team members error:', error.message);
         }
     }
 
-    showCreateTeamMemberForm() {
-        const modal = this.createModal('Create Team Member', `
-            <form id="create-team-member-form" class="space-y-4">
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" id="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                </div>
-                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Register</button>
-            </form>
-        `);
-        document.getElementById('create-team-member-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            try {
-                await apiClient.post('/register/', { email });
-                if (typeof toastManager !== 'undefined') {
-                    toastManager.showToast('Team member registered successfully', 'success', 'top-right');
+    async showCreateTeamMemberForm() {
+        try {
+            const roles = await apiClient.get('/roles/');
+            const modal = this.createModal('Create Team Member', `
+                <form id="create-team-member-form" class="space-y-4" enctype="multipart/form-data">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="name" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="role_id" class="block text-sm font-medium text-gray-700">Role</label>
+                        <select id="role_id" name="role_id" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="">Select...</option>
+                            ${roles.map(role => `<option value="${role.api_id}">${role.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="is_admin" class="block text-sm font-medium text-gray-700">Admin Status</label>
+                        <input type="checkbox" id="is_admin" name="is_admin" class="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    </div>
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Create</button>
+                </form>
+            `);
+
+            document.getElementById('create-team-member-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                formData.set('is_admin', formData.get('is_admin') === 'on' ? 'true' : 'false');
+
+                try {
+                    await apiClient.post('/team-members/', formData);
+                    if (typeof toastManager !== 'undefined') {
+                        toastManager.showToast('Team member created successfully', 'success', 'top-right');
+                    }
+                    modal.remove();
+                    this.loadTeamMembers();
+                } catch (error) {
+                    if (typeof toastManager !== 'undefined') {
+                        toastManager.showToast(`Failed to create team member: ${error.message}`, 'error', 'top-right');
+                    }
+                    console.error('Create team member error:', error.message);
                 }
-                modal.remove();
-                this.loadTeamMembers();
-            } catch (error) {
-                if (typeof toastManager !== 'undefined') {
-                    toastManager.showToast('Failed to register team member: ' + error.message, 'error', 'top-right');
-                }
-                console.error('Create team member error:', error.message);
+            });
+        } catch (error) {
+            if (typeof toastManager !== 'undefined') {
+                toastManager.showToast(`Failed to load roles: ${error.message}`, 'error', 'top-right');
             }
-        });
+            console.error('Create team member error:', error.message);
+        }
+    }
+
+    async showEditTeamMemberForm(id) {
+        try {
+            const [member, roles] = await Promise.all([
+                apiClient.get(`/team-members/${id}/`),
+                apiClient.get('/roles/')
+            ]);
+            const modal = this.createModal('Edit Team Member', `
+                <form id="edit-team-member-form" class="space-y-4" enctype="multipart/form-data">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="email" name="email" value="${member.email}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="name" name="name" value="${member.name}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="role_id" class="block text-sm font-medium text-gray-700">Role</label>
+                        <select id="role_id" name="role_id" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="">Select...</option>
+                            ${roles.map(role => `<option value="${role.api_id}" ${member.role_id === role.api_id ? 'selected' : ''}>${role.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="is_admin" class="block text-sm font-medium text-gray-700">Admin Status</label>
+                        <input type="checkbox" id="is_admin" name="is_admin" ${member.is_admin ? 'checked' : ''} class="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    </div>
+                    <div>
+                        <label for="is_active" class="block text-sm font-medium text-gray-700">Active Status</label>
+                        <input type="checkbox" id="is_active" name="is_active" ${member.is_active ? 'checked' : ''} class="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    </div>
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Update</button>
+                </form>
+            `);
+
+            document.getElementById('edit-team-member-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                formData.set('is_admin', formData.get('is_admin') === 'on' ? 'true' : 'false');
+                formData.set('is_active', formData.get('is_active') === 'on' ? 'true' : 'false');
+
+                try {
+                    await apiClient.put(`/team-members/${id}/`, formData);
+                    if (typeof toastManager !== 'undefined') {
+                        toastManager.showToast('Team member updated successfully', 'success', 'top-right');
+                    }
+                    modal.remove();
+                    this.loadTeamMembers();
+                } catch (error) {
+                    if (typeof toastManager !== 'undefined') {
+                        toastManager.showToast(`Failed to update team member: ${error.message}`, 'error', 'top-right');
+                    }
+                    console.error('Edit team member error:', error.message);
+                }
+            });
+        } catch (error) {
+            if (typeof toastManager !== 'undefined') {
+                toastManager.showToast(`Failed to load team member: ${error.message}`, 'error', 'top-right');
+            }
+            console.error('Edit team member error:', error.message);
+        }
     }
 
     async showTeamMemberDetails(id) {
@@ -515,78 +639,106 @@ updateSidebar() {
                     <div><label class="block text-sm font-medium text-gray-700">Last Login</label><p class="mt-1 text-gray-900">${member.last_login ? new Date(member.last_login).toLocaleString() : 'N/A'}</p></div>
                     <div><label class="block text-sm font-medium text-gray-700">Bio</label><p class="mt-1 text-gray-900">${member.bio || 'N/A'}</p></div>
                     <div><label class="block text-sm font-medium text-gray-700">Location</label><p class="mt-1 text-gray-900">${member.location || 'N/A'}</p></div>
+                    <div><label class="block text-sm font-medium text-gray-700">GitHub URL</label><p class="mt-1 text-gray-900">${member.github_url || 'N/A'}</p></div>
+                    <div><label class="block text-sm font-medium text-gray-700">LinkedIn URL</label><p class="mt-1 text-gray-900">${member.linkedin_url || 'N/A'}</p></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Twitter URL</label><p class="mt-1 text-gray-900">${member.twitter_url || 'N/A'}</p></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Language Preference</label><p class="mt-1 text-gray-900">${member.language_preference || 'N/A'}</p></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Profile Picture</label><img class="mt-1 max-w-xs h-auto" src="${this.fixImageUrl(member.profile_picture)}" alt="Profile Picture"></div>
                 </div>
             `);
         } catch (error) {
             if (typeof toastManager !== 'undefined') {
-                toastManager.showToast('Failed to load team member details: ' + error.message, 'error', 'top-right');
+                toastManager.showToast(`Failed to load team member details: ${error.message}`, 'error', 'top-right');
             }
             console.error('Team member details error:', error.message);
         }
     }
 
+    async deleteTeamMember(id) {
+        if (confirm('Are you sure you want to delete this team member?')) {
+            try {
+                await apiClient.delete(`/team-members/${id}/`);
+                if (typeof toastManager !== 'undefined') {
+                    toastManager.showToast('Team member deleted successfully', 'success', 'top-right');
+                }
+                this.loadTeamMembers();
+            } catch (error) {
+                if (typeof toastManager !== 'undefined') {
+                    toastManager.showToast(`Failed to delete team member: ${error.message}`, 'error', 'top-right');
+                }
+                console.error('Delete team member error:', error.message);
+            }
+        }
+    }
+
     async setupUpdateProfileForm() {
         try {
-            const [data, roles] = await Promise.all([
+            const [userData, roles] = await Promise.all([
                 apiClient.get('/admin/dashboard/'),
                 apiClient.get('/roles/')
             ]);
 
-            document.getElementById('name').value = data.user.name || '';
-            document.getElementById('bio').value = data.user.bio || '';
-            document.getElementById('github_url').value = data.user.github_url ? data.user.github_url.replace('https://github.com/', '') : '';
-            document.getElementById('linkedin_url').value = data.user.linkedin_url ? data.user.linkedin_url.replace('https://linkedin.com/in/', '') : '';
-            document.getElementById('twitter_url').value = data.user.twitter_url ? data.user.twitter_url.replace('https://twitter.com/', '') : '';
-            document.getElementById('location').value = data.user.location || '';
-            document.getElementById('language_preference').value = data.user.language_preference || '';
-
-            const roleSelect = document.getElementById('role_id');
-            roleSelect.innerHTML = '<option value="">Select...</option>';
-            roles.forEach(role => {
-                const option = document.createElement('option');
-                option.value = role.api_id;
-                option.textContent = role.name;
-                if (data.user.role && data.user.role.api_id === role.api_id) {
-                    option.selected = true;
+            const fields = ['name', 'bio', 'github_url', 'linkedin_url', 'twitter_url', 'location', 'language_preference', 'role_id'];
+            fields.forEach(field => {
+                const input = document.getElementById(field);
+                if (!input) {
+                    console.warn(`DOM element #${field} not found`);
+                    return;
                 }
-                roleSelect.appendChild(option);
+                switch (field) {
+                    case 'name':
+                        input.value = userData.user.name || '';
+                        break;
+                    case 'bio':
+                        input.value = userData.user.bio || '';
+                        break;
+                    case 'github_url':
+                        input.value = userData.user.github_url ? userData.user.github_url.replace('https://github.com/', '') : '';
+                        break;
+                    case 'linkedin_url':
+                        input.value = userData.user.linkedin_url ? userData.user.linkedin_url.replace('https://linkedin.com/in/', '') : '';
+                        break;
+                    case 'twitter_url':
+                        input.value = userData.user.twitter_url ? userData.user.twitter_url.replace('https://twitter.com/', '') : '';
+                        break;
+                    case 'location':
+                        input.value = userData.user.location || '';
+                        break;
+                    case 'language_preference':
+                        input.value = userData.user.language_preference || '';
+                        break;
+                    case 'role_id':
+                        input.innerHTML = `<option value="">Select...</option>` + roles.map(role => `<option value="${role.api_id}" ${userData.user.role_id === role.api_id ? 'selected' : ''}>${role.name}</option>`).join('');
+                        break;
+                }
+            });
+
+            // Add image preview
+            const imageInput = document.getElementById('profile_picture');
+            const imagePreview = document.getElementById('image-preview');
+            imageInput.addEventListener('change', () => {
+                if (imageInput.files && imageInput.files[0]) {
+                    imagePreview.src = URL.createObjectURL(imageInput.files[0]);
+                    imagePreview.classList.remove('hidden');
+                } else {
+                    imagePreview.classList.add('hidden');
+                }
             });
 
             document.getElementById('update-profile-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
-
-                const githubUsername = formData.get('github_url');
-                if (githubUsername) {
-                    formData.set('github_url', githubUsername.startsWith('http') ? githubUsername : `https://github.com/${githubUsername}`);
-                }
-                const linkedinUsername = formData.get('linkedin_url');
-                if (linkedinUsername) {
-                    formData.set('linkedin_url', linkedinUsername.startsWith('http') ? linkedinUsername : `https://linkedin.com/in/${linkedinUsername}`);
-                }
-                const twitterUsername = formData.get('twitter_url');
-                if (twitterUsername) {
-                    formData.set('twitter_url', twitterUsername.startsWith('http') ? twitterUsername : `https://twitter.com/${twitterUsername}`);
-                }
+                formData.set('github_url', formData.get('github_url') ? `https://github.com/${formData.get('github_url')}` : '');
+                formData.set('linkedin_url', formData.get('linkedin_url') ? `https://linkedin.com/in/${formData.get('linkedin_url')}` : '');
+                formData.set('twitter_url', formData.get('twitter_url') ? `https://twitter.com/${formData.get('twitter_url')}` : '');
 
                 try {
-                    const response = await fetch('http://localhost:8000/api/user/dashboard/', {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': apiClient.getHeaders()['Authorization']
-                        },
-                        body: formData
-                    });
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-                    }
-                    const updatedData = await response.json();
-                    this.userData = { user: updatedData };
+                    await apiClient.post('/admin/update-profile/', formData);
                     if (typeof toastManager !== 'undefined') {
                         toastManager.showToast('Profile updated successfully', 'success', 'top-right');
                     }
-                    this.loadPage('dashboard');
+                    this.userData = await apiClient.get('/admin/dashboard/');
+                    this.updateSidebar();
                 } catch (error) {
                     if (typeof toastManager !== 'undefined') {
                         toastManager.showToast(`Failed to update profile: ${error.message}`, 'error', 'top-right');
@@ -596,7 +748,7 @@ updateSidebar() {
             });
         } catch (error) {
             if (typeof toastManager !== 'undefined') {
-                toastManager.showToast('Failed to load profile data: ' + error.message, 'error', 'top-right');
+                toastManager.showToast(`Failed to load profile data: ${error.message}`, 'error', 'top-right');
             }
             console.error('Update profile error:', error.message);
         }
@@ -625,4 +777,3 @@ updateSidebar() {
 }
 
 const adminManager = new AdminManager();
-window.adminManager = adminManager;
