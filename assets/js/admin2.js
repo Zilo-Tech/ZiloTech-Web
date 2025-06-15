@@ -358,11 +358,26 @@ class AdminBlogProjectManager {
     }
 
     // Show form to edit a blog post
-    async showEditBlogForm(id) {
-        try {
-            const blog = await apiClient.get(`/blogs/${id}/`);
-            const modal = this.createModal('Edit Blog Post', `
-                <form id="edit-blog-form" class="space-y-4" enctype="multipart/form-data">
+    // Show form to edit a blog post
+async showEditBlogForm(id) {
+    try {
+        const [blog, teamMembers] = await Promise.all([
+            apiClient.get(`/blogs/${id}/`),
+            apiClient.get('/team-members/')
+        ]);
+        const modal = this.createModal('Edit Blog Post', `
+            <form id="edit-blog-form" class="space-y-4 max-h-[70vh] overflow-y-auto" enctype="multipart/form-data">
+                <!-- Tab Navigation -->
+                <div class="border-b border-gray-200 bg-gray-50 px-4 py-2 sticky top-0 z-10">
+                    <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+                        <button type="button" data-tab="basic-info" class="tab-button border-b-2 border-indigo-500 text-indigo-600 py-2 px-1 text-sm font-medium">Basic Info</button>
+                        <button type="button" data-tab="details" class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 text-sm font-medium">Details</button>
+                        <button type="button" data-tab="links-image" class="tab-button border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-2 px-1 text-sm font-medium">Links & Image</button>
+                    </nav>
+                </div>
+
+                <!-- Tab Content -->
+                <div id="basic-info" class="tab-content space-y-4 px-4">
                     <div>
                         <label for="title" class="block text-sm font-medium text-gray-700">Title</label>
                         <input type="text" id="title" name="title" value="${blog.title}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
@@ -372,17 +387,11 @@ class AdminBlogProjectManager {
                         <input type="text" id="subtitle" name="subtitle" value="${blog.subtitle || ''}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                     </div>
                     <div>
-                        <label for="content" class="block text-sm font-medium text-gray-700">Content</label>
-                        <textarea id="content" name="content" rows="6" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">${blog.content}</textarea>
-                    </div>
-                    <div>
-                        <label for="excerpt" class="block text-sm font-medium text-gray-700">Excerpt</label>
-                        <textarea id="excerpt" name="excerpt" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">${blog.excerpt || ''}</textarea>
-                    </div>
-                    <div>
-                        <label for="featured_image" class="block text-sm font-medium text-gray-700">Featured Image</label>
-                        <input type="file" id="featured_image" name="featured_image" accept="image/*" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <img id="image-preview" class="mt-2 max-w-xs h-auto ${blog.featured_image ? '' : 'hidden'}" src="${this.fixImageUrl(blog.featured_image)}" alt="Image Preview">
+                        <label for="author_id" class="block text-sm font-medium text-gray-700">Author</label>
+                        <select id="author_id" name="author_id" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="">Select Author</option>
+                            ${teamMembers.map(member => `<option value="${member.api_id}" ${blog.author_id === member.api_id ? 'selected' : ''}>${member.name}</option>`).join('')}
+                        </select>
                     </div>
                     <div>
                         <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
@@ -398,6 +407,17 @@ class AdminBlogProjectManager {
                             <option value="en" ${blog.language === 'en' ? 'selected' : ''}>English</option>
                             <option value="fr" ${blog.language === 'fr' ? 'selected' : ''}>French</option>
                         </select>
+                    </div>
+                </div>
+
+                <div id="details" class="tab-content space-y-4 px-4 hidden">
+                    <div>
+                        <label for="content" class="block text-sm font-medium text-gray-700">Content</label>
+                        <textarea id="content" name="content" rows="6" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">${blog.content}</textarea>
+                    </div>
+                    <div>
+                        <label for="excerpt" class="block text-sm font-medium text-gray-700">Excerpt</label>
+                        <textarea id="excerpt" name="excerpt" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">${blog.excerpt || ''}</textarea>
                     </div>
                     <div>
                         <label for="read_time_minutes" class="block text-sm font-medium text-gray-700">Read Time (Minutes)</label>
@@ -415,60 +435,112 @@ class AdminBlogProjectManager {
                         <label for="allow_comments" class="block text-sm font-medium text-gray-700">Allow Comments</label>
                         <input type="checkbox" id="allow_comments" name="allow_comments" ${blog.allow_comments ? 'checked' : ''} class="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
                     </div>
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Update</button>
-                </form>
-            `);
+                </div>
 
-            // Add image preview
-            const imageInput = modal.querySelector('#featured_image');
-            const imagePreview = modal.querySelector('#image-preview');
-            imageInput.addEventListener('change', () => {
-                if (imageInput.files && imageInput.files[0]) {
-                    imagePreview.src = URL.createObjectURL(imageInput.files[0]);
-                    imagePreview.classList.remove('hidden');
-                } else {
-                    imagePreview.classList.add('hidden');
-                }
+                <div id="links-image" class="tab-content space-y-4 px-4 hidden">
+                    <div>
+                        <label for="published_date" class="block text-sm font-medium text-gray-700">Published Date</label>
+                        <input type="datetime-local" id="published_date" name="published_date" value="${blog.published_date ? blog.published_date.slice(0, 16) : ''}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="featured_image" class="block text-sm font-medium text-gray-700">Featured Image</label>
+                        <input type="file" id="featured_image" name="featured_image" accept="image/*" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <img id="image-preview" class="mt-2 ${blog.featured_image ? '' : 'hidden'} max-w-xs h-auto" src="${this.fixImageUrl(blog.featured_image)}" alt="Image Preview">
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="flex justify-between mt-4 px-4">
+                    <button type="button" id="prev-tab" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 hidden">Previous</button>
+                    <button type="button" id="next-tab" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Next</button>
+                    <button type="submit" id="submit-blog" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 hidden">Update</button>
+                </div>
+            </form>
+        `);
+
+        // Tab switching logic
+        const tabs = modal.querySelectorAll('.tab-button');
+        const tabContents = modal.querySelectorAll('.tab-content');
+        const prevBtn = modal.querySelector('#prev-tab');
+        const nextBtn = modal.querySelector('#next-tab');
+        const submitBtn = modal.querySelector('#submit-blog');
+        let currentTab = 0;
+
+        const showTab = (index) => {
+            tabs.forEach((tab, i) => {
+                tab.classList.toggle('border-indigo-500', i === index);
+                tab.classList.toggle('text-indigo-600', i === index);
+                tab.classList.toggle('border-transparent', i !== index);
+                tab.classList.toggle('text-gray-500', i !== index);
+                tab.classList.toggle('hover:text-gray-700', i !== index);
+                tab.classList.toggle('hover:border-gray-300', i !== index);
             });
-
-            modal.querySelector('#edit-blog-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                formData.set('tags', formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()) : []);
-                formData.set('seo_keywords', formData.get('seo_keywords') ? formData.get('seo_keywords').split(',').map(kw => kw.trim()) : []);
-                formData.set('allow_comments', formData.get('allow_comments') === 'on' ? 'true' : 'false');
-
-                try {
-                    const response = await fetch(`${this.baseUrl}/blogs/${id}/`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': apiClient.getHeaders()['Authorization']
-                        },
-                        body: formData
-                    });
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-                    }
-                    if (typeof toastManager !== 'undefined') {
-                        toastManager.showToast('Blog post updated successfully', 'success', 'top-right');
-                    }
-                    modal.remove();
-                    this.loadBlogs();
-                } catch (error) {
-                    if (typeof toastManager !== 'undefined') {
-                        toastManager.showToast(`Failed to update blog post: ${error.message}`, 'error', 'top-right');
-                    }
-                    console.error('Edit blog error:', error.message);
-                }
+            tabContents.forEach((content, i) => {
+                content.classList.toggle('hidden', i !== index);
             });
-        } catch (error) {
-            if (typeof toastManager !== 'undefined') {
-                toastManager.showToast(`Failed to load blog: ${error.message}`, 'error', 'top-right');
+            prevBtn.classList.toggle('hidden', index === 0);
+            nextBtn.classList.toggle('hidden', index === tabContents.length - 1);
+            submitBtn.classList.toggle('hidden', index !== tabContents.length - 1);
+            currentTab = index;
+        };
+
+        tabs.forEach((tab, index) => {
+            tab.addEventListener('click', () => showTab(index));
+        });
+        prevBtn.addEventListener('click', () => showTab(currentTab - 1));
+        nextBtn.addEventListener('click', () => showTab(currentTab + 1));
+        showTab(0);
+
+        // Add image preview
+        const imageInput = modal.querySelector('#featured_image');
+        const imagePreview = modal.querySelector('#image-preview');
+        imageInput.addEventListener('change', () => {
+            if (imageInput.files && imageInput.files[0]) {
+                imagePreview.src = URL.createObjectURL(imageInput.files[0]);
+                imagePreview.classList.remove('hidden');
             }
-            console.error('Edit blog error:', error.message);
+        });
+
+        modal.querySelector('#edit-blog-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            formData.set('allow_comments', formData.get('allow_comments') === 'on' ? 'true' : 'false');
+            const tags = formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()).filter(Boolean) : [];
+            const seoKeywords = formData.get('seo_keywords') ? formData.get('seo_keywords').split(',').map(kw => kw.trim()).filter(Boolean) : [];
+            formData.set('tags', JSON.stringify(tags));
+            formData.set('seo_keywords', JSON.stringify(seoKeywords));
+
+            try {
+                const response = await fetch(`${this.baseUrl}/blogs/${id}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': apiClient.getHeaders()['Authorization']
+                    },
+                    body: formData
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(JSON.stringify(errorData) || `HTTP error! Status: ${response.status}`);
+                }
+                if (typeof toastManager !== 'undefined') {
+                    toastManager.showToast('Blog post updated successfully', 'success', 'top-right');
+                }
+                modal.remove();
+                this.loadBlogs();
+            } catch (error) {
+                if (typeof toastManager !== 'undefined') {
+                    toastManager.showToast(`Failed to update blog post: ${error.message}`, 'error', 'top-right');
+                }
+                console.error('Edit blog error:', error.message);
+            }
+        });
+    } catch (error) {
+        if (typeof toastManager !== 'undefined') {
+            toastManager.showToast(`Failed to load blog: ${error.message}`, 'error', 'top-right');
         }
+        console.error('Edit blog error:', error.message);
     }
+}
 
     // Delete a blog post
     async deleteBlog(id) {
