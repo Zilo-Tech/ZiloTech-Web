@@ -40,6 +40,11 @@ class AdminBlogProjectManager {
                             <h2 class="text-2xl font-semibold">Blog Posts</h2>
                             <button id="create-blog-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Create Blog Post</button>
                         </div>
+                        <div class="space-x-2">
+                            <button id="create-blog-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Create Manual Blog</button>
+                            <button id="create-ai-blog-btn" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Create AI Blog</button>
+                        </div>
+
                         <div class="bg-white rounded-lg shadow-md p-6">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
@@ -133,6 +138,10 @@ class AdminBlogProjectManager {
             tbody.querySelectorAll('[data-delete]').forEach(btn => {
                 btn.addEventListener('click', () => this.deleteBlog(btn.getAttribute('data-delete')));
             });
+
+            // Add to loadBlogs method, after existing event listeners
+            document.getElementById('create-ai-blog-btn').addEventListener('click', () => this.showCreateAIBlogForm());
+
         } catch (error) {
             const loader = document.getElementById('page-loader');
             if (loader) {
@@ -144,6 +153,70 @@ class AdminBlogProjectManager {
             console.error('Blogs error:', error.message);
         }
     }
+
+    async showCreateAIBlogForm() {
+    const modal = this.createModal('Create AI Blog Post', `
+        <form id="create-ai-blog-form" class="space-y-4">
+            <div>
+                <label for="user_query" class="block text-sm font-medium text-gray-700">Blog Topic</label>
+                <input type="text" id="user_query" name="user_query" value="Write a blog post about technology" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="language_id" class="block text-sm font-medium text-gray-700">Language</label>
+                <select id="language_id" name="language_id" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="en">English</option>
+                    <option value="fr">French</option>
+                </select>
+            </div>
+            <div>
+                <label for="source" class="block text-sm font-medium text-gray-700">Source</label>
+                <select id="source" name="source" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="internal">Internal Knowledge</option>
+                    <option value="web">Web Search</option>
+                    <option value="both">Both</option>
+                </select>
+            </div>
+            <div>
+                <label for="prompt_version" class="block text-sm font-medium text-gray-700">Prompt Version</label>
+                <input type="text" id="prompt_version" name="prompt_version" value="v1" readonly class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 sm:text-sm">
+            </div>
+            <div>
+                <label for="user_email" class="block text-sm font-medium text-gray-700">User Email</label>
+                <input type="email" id="user_email" name="user_email" value="eddy@gmail.com" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div class="flex justify-end mt-4">
+                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Generate Blog</button>
+            </div>
+        </form>
+    `);
+
+    modal.querySelector('#create-ai-blog-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            user_query: formData.get('user_query'),
+            language_id: formData.get('language_id'),
+            source: formData.get('source'),
+            prompt_version: formData.get('prompt_version'),
+            user_email: formData.get('user_email'),
+        };
+
+        try {
+            const response = await apiClient.post('/agent/blog-agent/', data);
+            if (typeof toastManager !== 'undefined') {
+                toastManager.showToast(`AI Blog generation started. Task ID: ${response.task_id}`, 'success', 'top-right');
+            }
+            modal.remove();
+            // Reload blogs after a delay to check for new blog
+            setTimeout(() => this.loadBlogs(), 5000);
+        } catch (error) {
+            if (typeof toastManager !== 'undefined') {
+                toastManager.showToast(`Failed to start AI Blog generation: ${error.message}`, 'error', 'top-right');
+            }
+            console.error('AI Blog creation error:', error.message);
+        }
+    });
+}
 
     // Show form to create a blog post
     async showCreateBlogForm() {

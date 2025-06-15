@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Use featured_image or fallback to placeholder
             const imageUrl = blog.featured_image || `https://picsum.photos/400/200?random=${blog.api_id}`;
-            const excerpt = blog.excerpt || 'No summary available.';
+            const excerpt = blog.content || 'No summary available.';
             const truncatedExcerpt = excerpt.length > 50 ? excerpt.substring(0, 50) + '...' : excerpt;
             const tags = blog.tags && blog.tags.length > 0 ? blog.tags.map(tag => `<span class="badge bg-secondary me-1">${tag}</span>`).join('') : '<span class="badge bg-secondary">No tags</span>';
 
