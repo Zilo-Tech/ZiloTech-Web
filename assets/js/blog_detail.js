@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 recCard.setAttribute('data-aos-delay', delay);
 
                 const imageUrl = recBlog.featured_image || `https://picsum.photos/400/200?random=${recBlog.api_id}`;
-                const excerpt = recBlog.excerpt || 'No summary available.';
+                const excerpt = recBlog.content ? recBlog.content.slice(0, 50) + (recBlog.content.length > 50 ? '...' : '') : 'No summary available.';
                 const tags = recBlog.tags && recBlog.tags.length > 0 ? recBlog.tags.map(tag => `<span class="badge bg-secondary me-1">${tag}</span>`).join('') : '<span class="badge bg-secondary">No tags</span>';
 
                 recCard.innerHTML = `
